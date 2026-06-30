@@ -17,13 +17,13 @@ body{
     height:100vh;
 }
 
-/* left */
+/* LEFT */
 .left{
     width:240px;
     background:#141824;
     padding:10px;
-    border-right:1px solid #22283a;
     overflow-y:auto;
+    border-right:1px solid #22283a;
 }
 
 .char{
@@ -38,7 +38,7 @@ body{
 
 .char small{display:block;color:#aaa;}
 
-/* right */
+/* RIGHT */
 .right{
     flex:1;
     padding:15px;
@@ -73,8 +73,8 @@ button{
 /* task */
 .task{
     display:flex;
-    justify-content:space-between;
     align-items:center;
+    justify-content:space-between;
     background:#151a25;
     border:1px solid #22283a;
     padding:10px;
@@ -88,6 +88,7 @@ button{
     color:#aaa;
 }
 
+/* pinned */
 .pinned{
     color:#ffd700;
 }
@@ -123,6 +124,7 @@ button{
 
 <h2>🎮 로아 숙제 앱</h2>
 
+<!-- INPUT -->
 <div class="input-box">
     <input id="name" placeholder="숙제 이름">
 
@@ -141,10 +143,21 @@ button{
     <button onclick="addTask()">추가</button>
 </div>
 
+<!-- ADMIN -->
+<div class="input-box">
+    <button onclick="loadDefaultTasks()">🔄 기본 숙제 불러오기</button>
+    <button onclick="resetAll()" style="background:#ff4c4c;">🗑 전체 초기화</button>
+</div>
+
+<!-- VIEW -->
+<div class="input-box">
+    <button onclick="setView('single')">선택 캐릭터</button>
+    <button onclick="setView('all')">전체 보기</button>
+</div>
+
 <div id="taskList"></div>
 
 </div>
-
 </div>
 
 <script type="module">
@@ -162,8 +175,7 @@ const firebaseConfig = {
   projectId: "mobi-task",
   storageBucket: "mobi-task.firebasestorage.app",
   messagingSenderId: "822908775749",
-  appId: "1:822908775749:web:3e0b70f1e0ca8e16b7e22c",
-  measurementId: "G-SP6Z6DSY0G"
+  appId: "1:822908775749:web:3e0b70f1e0ca8e16b7e22c"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -172,6 +184,7 @@ const docRef = doc(db, "loa", "data");
 
 /* ================= DATA ================= */
 let data;
+let viewMode = "single";
 
 /* ================= DEFAULT ================= */
 function createDefaultData(){
@@ -205,7 +218,7 @@ function createDefaultData(){
     };
 }
 
-/* ================= FIREBASE IO ================= */
+/* ================= FIREBASE ================= */
 async function saveData(){
     await setDoc(docRef,data);
 }
@@ -233,7 +246,7 @@ async function startApp(){
 function addChar(){
     if(data.chars.length>=15)return alert("최대 15개");
 
-    const name = prompt("캐릭터 이름");
+    const name=prompt("캐릭터 이름");
     if(!name)return;
 
     data.chars.push({name,progress:{}});
@@ -261,7 +274,9 @@ function addTask(){
 
     data.tasks.push({
         id:Date.now(),
-        name,category,type,
+        name,
+        category,
+        type,
         pinned:false
     });
 
@@ -292,6 +307,25 @@ function togglePin(id){
     save();render();
 }
 
+/* ================= ADMIN ================= */
+function loadDefaultTasks(){
+    data = createDefaultData();
+    save();render();
+}
+
+async function resetAll(){
+    if(!confirm("전체 초기화?"))return;
+    data = createDefaultData();
+    await saveData();
+    render();
+}
+
+/* ================= VIEW ================= */
+function setView(m){
+    viewMode=m;
+    render();
+}
+
 /* ================= RENDER ================= */
 function render(){
 
@@ -301,7 +335,6 @@ function render(){
     charList.innerHTML="";
     taskList.innerHTML="";
 
-    /* chars */
     data.chars.forEach((c,i)=>{
         charList.innerHTML+=`
         <div class="char ${i===data.selected?"active":""}"
@@ -312,7 +345,6 @@ function render(){
 
     const c=getChar();
 
-    /* tasks */
     data.tasks
     .sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0))
     .forEach(t=>{
@@ -343,7 +375,7 @@ function render(){
     });
 }
 
-/* ================= RUN ================= */
+/* ================= START ================= */
 startApp();
 
 </script>
