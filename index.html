@@ -2,137 +2,107 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>모비 숙제 관리</title>
+<title>로아 숙제 앱</title>
 
 <style>
 body {
-    margin: 0;
+    margin:0;
     font-family: Arial;
-    background: #0f1117;
-    color: #e6e6e6;
+    background:#0f1117;
+    color:#e6e6e6;
 }
 
 /* layout */
 .container {
-    display: flex;
-    height: 100vh;
+    display:flex;
+    height:100vh;
 }
 
-/* left */
+/* chars */
 .left {
-    width: 240px;
-    background: #141824;
-    padding: 10px;
-    border-right: 1px solid #22283a;
-    overflow-y: auto;
+    width:240px;
+    background:#141824;
+    padding:10px;
+    overflow-y:auto;
+    border-right:1px solid #22283a;
 }
 
 .char {
-    background: #1a1f2e;
-    padding: 10px;
-    margin: 6px 0;
-    border-radius: 8px;
-    cursor: pointer;
+    background:#1a1f2e;
+    padding:10px;
+    margin:6px 0;
+    border-radius:8px;
+    cursor:pointer;
 }
 
-.char.active {
-    background: #4c7dff;
-}
+.char.active { background:#4c7dff; }
 
 .char small {
-    display: block;
-    color: #aaa;
-    margin-top: 4px;
+    display:block;
+    color:#aaa;
 }
 
-/* right */
+/* main */
 .right {
-    flex: 1;
-    padding: 15px;
-    overflow-y: auto;
+    flex:1;
+    padding:15px;
+    overflow-y:auto;
 }
 
 /* input */
-.input-box {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-bottom: 10px;
+.input {
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-bottom:10px;
 }
 
-input, select {
-    padding: 8px;
-    border-radius: 6px;
-    border: none;
-    background: #1a1f2e;
-    color: white;
+input,select {
+    padding:8px;
+    border:none;
+    border-radius:6px;
+    background:#1a1f2e;
+    color:white;
 }
 
 button {
-    padding: 7px 10px;
-    border: none;
-    border-radius: 6px;
-    background: #4c7dff;
-    color: white;
-    cursor: pointer;
-}
-
-/* filter */
-.filter {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    margin-bottom: 10px;
-}
-
-.filter button {
-    background: #22283a;
-}
-
-.filter button.active {
-    background: #4c7dff;
+    padding:7px 10px;
+    border:none;
+    border-radius:6px;
+    background:#4c7dff;
+    color:white;
+    cursor:pointer;
 }
 
 /* task */
 .task {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: #151a25;
-    border: 1px solid #22283a;
-    padding: 10px;
-    margin: 8px 0;
-    border-radius: 10px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:10px;
+    margin:8px 0;
+    background:#151a25;
+    border:1px solid #22283a;
+    border-radius:10px;
 }
 
-/* category */
 .category {
-    width: 60px;
-    font-size: 12px;
-    color: #aaa;
+    width:60px;
+    font-size:12px;
+    color:#aaa;
 }
-
-/* state */
-.state.low { color: #ff5c5c; }
-.state.mid { color: #ffcc66; }
-.state.max { color: #5cff9d; }
 
 /* mobile */
-@media (max-width: 768px) {
-    .container {
-        flex-direction: column;
+@media(max-width:768px){
+    .container{flex-direction:column;}
+    .left{
+        width:100%;
+        display:flex;
+        overflow-x:auto;
+        gap:6px;
     }
-
-    .left {
-        width: 100%;
-        display: flex;
-        overflow-x: auto;
-        gap: 6px;
-    }
-
-    .char {
-        min-width: 140px;
-        flex: 0 0 auto;
+    .char{
+        min-width:140px;
     }
 }
 </style>
@@ -151,17 +121,16 @@ button {
 <!-- RIGHT -->
 <div class="right">
 
-<h2>🎮 숙제 관리</h2>
+<h2>🎮 로아 숙제 앱</h2>
 
-<!-- input -->
-<div class="input-box">
+<div class="input">
     <input id="name" placeholder="숙제 이름">
 
     <select id="category">
-        <option value="일간">일간</option>
-        <option value="주간">주간</option>
-        <option value="주말">주말</option>
-        <option value="물교">물교</option>
+        <option>일간</option>
+        <option>주간</option>
+        <option>주말</option>
+        <option>물교</option>
     </select>
 
     <select id="type">
@@ -172,183 +141,104 @@ button {
     <button onclick="addTask()">추가</button>
 </div>
 
-<!-- filter -->
-<div class="filter">
-    <button onclick="setFilter('all')" class="active">전체</button>
-    <button onclick="setFilter('일간')">일간</button>
-    <button onclick="setFilter('주간')">주간</button>
-    <button onclick="setFilter('주말')">주말</button>
-    <button onclick="setFilter('물교')">물교</button>
-    <button onclick="setFilter('today')">오늘</button>
-</div>
-
 <div id="taskList"></div>
 
 </div>
+
 </div>
 
 <script>
 
 /* ================= DATA ================= */
 let data = JSON.parse(localStorage.getItem("data")) || {
+    tasks: [],
     chars: [],
-    selected: 0
+    selected: 0,
+    lastReset: 0
 };
 
-let filter = "all";
-let viewMode = "single";
-
-/* ================= DEFAULT TASK ================= */
-const defaultTasks = [
-  { name:"어비스", category:"주간", type:"check" },
-  { name:"타바르타스", category:"주간", type:"check" },
-  { name:"화이트 서큐버스", category:"주간", type:"check" },
-  { name:"에이렐", category:"주간", type:"check" },
-  { name:"필보", category:"주간", type:"check" },
-  { name:"뱅가드", category:"주간", type:"count", count:3 },
-  { name:"심층매어", category:"주간", type:"check" },
-  { name:"골드알바", category:"주간", type:"check" },
-  { name:"표바꾸기", category:"주간", type:"check" },
-
-  { name:"어비스", category:"주말", type:"count", count:3 },
-  { name:"레이드", category:"주말", type:"check" },
-  { name:"쿠데타알바", category:"주말", type:"check" },
-
-  { name:"농매", category:"물교", type:"check" },
-  { name:"최상급목재+", category:"물교", type:"check" },
-  { name:"백금강괴", category:"물교", type:"check" },
-  { name:"월화물고기", category:"물교", type:"check" },
-  { name:"수목물고기", category:"물교", type:"check" },
-  { name:"금토일물고기", category:"물교", type:"check" }
-];
-
 /* ================= INIT ================= */
-if (!data.chars.length) {
+if(!data.chars.length){
     data.chars.push({
-        name: "캐릭터 1",
-        tasks: JSON.parse(JSON.stringify(defaultTasks))
+        name:"캐릭터 1",
+        progress:{}
     });
 }
 
 /* ================= SAVE ================= */
-function save() {
-    localStorage.setItem("data", JSON.stringify(data));
-}
-
-/* ================= CHAR ================= */
-function addChar() {
-    if (data.chars.length >= 15) return alert("최대 15개");
-
-    const name = prompt("캐릭터 이름");
-    if (!name) return;
-
-    data.chars.push({
-        name,
-        tasks: JSON.parse(JSON.stringify(defaultTasks))
-    });
-
-    data.selected = data.chars.length - 1;
-    save();
-    render();
-}
-
-function selectChar(i) {
-    data.selected = i;
-    render();
-}
-
-function editChar(i) {
-    const name = prompt("이름 수정", data.chars[i].name);
-    if (!name) return;
-    data.chars[i].name = name;
-    save(); render();
-}
-
-function deleteChar(i) {
-    if (!confirm("삭제?")) return;
-    data.chars.splice(i,1);
-    save(); render();
-}
-
-function moveChar(i,d) {
-    const j = i + d;
-    if (j<0 || j>=data.chars.length) return;
-    [data.chars[i],data.chars[j]]=[data.chars[j],data.chars[i]];
-    save(); render();
-}
-
-function getProgress(c) {
-    const done = c.tasks.filter(t =>
-        (t.type==="check" && t.done) ||
-        (t.type==="count" && t.count>=3)
-    ).length;
-    return `${done}/${c.tasks.length}`;
+function save(){
+    localStorage.setItem("data",JSON.stringify(data));
 }
 
 /* ================= TASK ================= */
-function getTasks() {
-    return data.chars[data.selected].tasks;
-}
+function addTask(){
+    const name=document.getElementById("name").value;
+    const category=document.getElementById("category").value;
+    const type=document.getElementById("type").value;
 
-function addTask() {
-    const name = document.getElementById("name").value;
-    const category = document.getElementById("category").value;
-    const type = document.getElementById("type").value;
+    if(!name)return;
 
-    if (!name) return;
-
-    getTasks().push({
-        name, category, type,
-        count:0,
-        done:false
+    data.tasks.push({
+        id:Date.now(),
+        name,category,type
     });
 
-    document.getElementById("name").value="";
-    save(); render();
+    save();render();
 }
 
-function change(i,d) {
-    const t = getTasks()[i];
-    t.count+=d;
-    if (t.count<0) t.count=0;
-    if (t.count>3) t.count=3;
-    save(); render();
+/* ================= CHAR ================= */
+function addChar(){
+    if(data.chars.length>=15)return alert("최대 15개");
+
+    const name=prompt("캐릭터 이름");
+    if(!name)return;
+
+    data.chars.push({
+        name,
+        progress:{}
+    });
+
+    data.selected=data.chars.length-1;
+    save();render();
 }
 
-function toggle(i) {
-    const t = getTasks()[i];
-    t.done=!t.done;
-    save(); render();
-}
-
-function del(i) {
-    getTasks().splice(i,1);
-    save(); render();
-}
-
-/* ================= FILTER ================= */
-function setFilter(f) {
-    filter=f;
+function selectChar(i){
+    data.selected=i;
     render();
 }
 
-function isToday(t){
-    const map={0:"일",1:"월",2:"화",3:"수",4:"목",5:"금",6:"토"};
-    return t.category==="일간"||t.category==="주간"||t.category===map[new Date().getDay()];
+function getChar(){
+    return data.chars[data.selected];
+}
+
+/* ================= PROGRESS ================= */
+function toggle(id){
+    const c=getChar();
+    c.progress[id]=!c.progress[id];
+    save();render();
+}
+
+function change(id,d){
+    const c=getChar();
+    if(!c.progress[id])c.progress[id]=0;
+
+    c.progress[id]+=d;
+    if(c.progress[id]<0)c.progress[id]=0;
+    if(c.progress[id]>3)c.progress[id]=3;
+
+    save();render();
 }
 
 /* ================= RESET ================= */
-function weeklyReset(){
+function reset(){
     const now=new Date();
-    const last=localStorage.getItem("reset");
-    if(!last|| (now.getDay()===1 && now.getHours()>=6)){
+    const last=new Date(data.lastReset);
+
+    if(now.getDay()===1 && now.getHours()>=6){
         data.chars.forEach(c=>{
-            c.tasks.forEach(t=>{
-                if(t.type==="check")t.done=false;
-                if(t.type==="count")t.count=0;
-            });
+            c.progress={};
         });
-        localStorage.setItem("reset",Date.now());
+        data.lastReset=Date.now();
         save();
     }
 }
@@ -362,29 +252,22 @@ function render(){
     charList.innerHTML="";
     taskList.innerHTML="";
 
+    /* chars */
     data.chars.forEach((c,i)=>{
         charList.innerHTML+=`
-        <div class="char ${i===data.selected?"active":""}">
-            <div onclick="selectChar(${i})">${c.name}</div>
-            <small>${getProgress(c)}</small>
-            <div>
-                <button onclick="moveChar(${i},-1)">⬆</button>
-                <button onclick="moveChar(${i},1)">⬇</button>
-                <button onclick="editChar(${i})">✏</button>
-                <button onclick="deleteChar(${i})">🗑</button>
-            </div>
+        <div class="char ${i===data.selected?"active":""}"
+        onclick="selectChar(${i})">
+            ${c.name}
         </div>`;
     });
 
-    let tasks=getTasks();
+    /* tasks */
+    const c=getChar();
 
-    if(filter==="today"){
-        tasks=tasks.filter(isToday);
-    } else if(filter!=="all"){
-        tasks=tasks.filter(t=>t.category===filter);
-    }
+    data.tasks.forEach(t=>{
 
-    tasks.forEach((t,i)=>{
+        const p=c.progress[t.id];
+
         taskList.innerHTML+=`
         <div class="task">
 
@@ -392,22 +275,21 @@ function render(){
             <div class="category">${t.category}</div>
 
             ${t.type==="count"?`
-                <div>${t.count}/3</div>
-                <button onclick="change(${i},-1)">-</button>
-                <button onclick="change(${i},1)">+</button>
+                <div>${p||0}/3</div>
+                <button onclick="change(${t.id},-1)">-</button>
+                <button onclick="change(${t.id},1)">+</button>
             `:`
                 <input type="checkbox"
-                ${t.done?"checked":""}
-                onchange="toggle(${i})">
+                ${p?"checked":""}
+                onchange="toggle(${t.id})">
             `}
 
-            <button onclick="del(${i})">X</button>
         </div>`;
     });
 }
 
 /* ================= RUN ================= */
-weeklyReset();
+reset();
 render();
 
 </script>
