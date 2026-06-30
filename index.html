@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>로아 숙제 관리</title>
+<title>모비 숙제 관리</title>
 
 <style>
 body {
@@ -12,15 +12,15 @@ body {
     color: #e6e6e6;
 }
 
-/* 레이아웃 */
+/* layout */
 .container {
     display: flex;
     height: 100vh;
 }
 
-/* 좌측 캐릭터 */
+/* left */
 .left {
-    width: 220px;
+    width: 240px;
     background: #141824;
     padding: 10px;
     border-right: 1px solid #22283a;
@@ -28,9 +28,9 @@ body {
 }
 
 .char {
-    padding: 10px;
-    margin: 5px 0;
     background: #1a1f2e;
+    padding: 10px;
+    margin: 6px 0;
     border-radius: 8px;
     cursor: pointer;
 }
@@ -39,14 +39,20 @@ body {
     background: #4c7dff;
 }
 
-/* 우측 */
+.char small {
+    display: block;
+    color: #aaa;
+    margin-top: 4px;
+}
+
+/* right */
 .right {
     flex: 1;
     padding: 15px;
     overflow-y: auto;
 }
 
-/* 입력 */
+/* input */
 .input-box {
     display: flex;
     gap: 8px;
@@ -62,9 +68,8 @@ input, select {
     color: white;
 }
 
-/* 버튼 */
 button {
-    padding: 8px 10px;
+    padding: 7px 10px;
     border: none;
     border-radius: 6px;
     background: #4c7dff;
@@ -72,7 +77,7 @@ button {
     cursor: pointer;
 }
 
-/* 필터 */
+/* filter */
 .filter {
     display: flex;
     gap: 6px;
@@ -88,7 +93,7 @@ button {
     background: #4c7dff;
 }
 
-/* 숙제 카드 */
+/* task */
 .task {
     display: flex;
     align-items: center;
@@ -100,19 +105,19 @@ button {
     border-radius: 10px;
 }
 
-/* 카테고리 */
+/* category */
 .category {
     width: 60px;
     font-size: 12px;
     color: #aaa;
 }
 
-/* 상태 */
+/* state */
 .state.low { color: #ff5c5c; }
 .state.mid { color: #ffcc66; }
 .state.max { color: #5cff9d; }
 
-/* 모바일 */
+/* mobile */
 @media (max-width: 768px) {
     .container {
         flex-direction: column;
@@ -122,13 +127,12 @@ button {
         width: 100%;
         display: flex;
         overflow-x: auto;
-        gap: 5px;
+        gap: 6px;
     }
 
     .char {
+        min-width: 140px;
         flex: 0 0 auto;
-        min-width: 120px;
-        text-align: center;
     }
 }
 </style>
@@ -138,18 +142,18 @@ button {
 
 <div class="container">
 
-<!-- 캐릭터 -->
+<!-- LEFT -->
 <div class="left">
     <button onclick="addChar()">+ 캐릭터</button>
     <div id="charList"></div>
 </div>
 
-<!-- 숙제 -->
+<!-- RIGHT -->
 <div class="right">
 
 <h2>🎮 숙제 관리</h2>
 
-<!-- 입력 -->
+<!-- input -->
 <div class="input-box">
     <input id="name" placeholder="숙제 이름">
 
@@ -168,7 +172,7 @@ button {
     <button onclick="addTask()">추가</button>
 </div>
 
-<!-- 필터 -->
+<!-- filter -->
 <div class="filter">
     <button onclick="setFilter('all')" class="active">전체</button>
     <button onclick="setFilter('일간')">일간</button>
@@ -181,20 +185,20 @@ button {
 <div id="taskList"></div>
 
 </div>
-
 </div>
 
 <script>
 
-/* ================= 데이터 ================= */
+/* ================= DATA ================= */
 let data = JSON.parse(localStorage.getItem("data")) || {
     chars: [],
     selected: 0
 };
 
 let filter = "all";
+let viewMode = "single";
 
-/* ================= 기본 템플릿 ================= */
+/* ================= DEFAULT TASK ================= */
 const defaultTasks = [
   { name:"어비스", category:"주간", type:"check" },
   { name:"타바르타스", category:"주간", type:"check" },
@@ -218,7 +222,7 @@ const defaultTasks = [
   { name:"금토일물고기", category:"물교", type:"check" }
 ];
 
-/* ================= 초기 캐릭터 ================= */
+/* ================= INIT ================= */
 if (!data.chars.length) {
     data.chars.push({
         name: "캐릭터 1",
@@ -226,12 +230,12 @@ if (!data.chars.length) {
     });
 }
 
-/* ================= 저장 ================= */
+/* ================= SAVE ================= */
 function save() {
     localStorage.setItem("data", JSON.stringify(data));
 }
 
-/* ================= 캐릭터 ================= */
+/* ================= CHAR ================= */
 function addChar() {
     if (data.chars.length >= 15) return alert("최대 15개");
 
@@ -253,7 +257,35 @@ function selectChar(i) {
     render();
 }
 
-/* ================= 숙제 ================= */
+function editChar(i) {
+    const name = prompt("이름 수정", data.chars[i].name);
+    if (!name) return;
+    data.chars[i].name = name;
+    save(); render();
+}
+
+function deleteChar(i) {
+    if (!confirm("삭제?")) return;
+    data.chars.splice(i,1);
+    save(); render();
+}
+
+function moveChar(i,d) {
+    const j = i + d;
+    if (j<0 || j>=data.chars.length) return;
+    [data.chars[i],data.chars[j]]=[data.chars[j],data.chars[i]];
+    save(); render();
+}
+
+function getProgress(c) {
+    const done = c.tasks.filter(t =>
+        (t.type==="check" && t.done) ||
+        (t.type==="count" && t.count>=3)
+    ).length;
+    return `${done}/${c.tasks.length}`;
+}
+
+/* ================= TASK ================= */
 function getTasks() {
     return data.chars[data.selected].tasks;
 }
@@ -266,113 +298,104 @@ function addTask() {
     if (!name) return;
 
     getTasks().push({
-        name,
-        category,
-        type,
-        count: 0,
-        done: false
+        name, category, type,
+        count:0,
+        done:false
     });
 
-    document.getElementById("name").value = "";
-    save();
-    render();
+    document.getElementById("name").value="";
+    save(); render();
 }
 
-/* ================= 변경 ================= */
-function change(i, diff) {
-    let t = getTasks()[i];
-    t.count += diff;
-
-    if (t.count < 0) t.count = 0;
-    if (t.count > 3) t.count = 3;
-
-    save();
-    render();
+function change(i,d) {
+    const t = getTasks()[i];
+    t.count+=d;
+    if (t.count<0) t.count=0;
+    if (t.count>3) t.count=3;
+    save(); render();
 }
 
 function toggle(i) {
-    let t = getTasks()[i];
-    t.done = !t.done;
-
-    save();
-    render();
+    const t = getTasks()[i];
+    t.done=!t.done;
+    save(); render();
 }
 
 function del(i) {
-    getTasks().splice(i, 1);
-    save();
-    render();
+    getTasks().splice(i,1);
+    save(); render();
 }
 
-/* ================= 필터 ================= */
+/* ================= FILTER ================= */
 function setFilter(f) {
-    filter = f;
+    filter=f;
     render();
 }
 
-/* ================= 오늘 필터 ================= */
-function isToday(task) {
-    const day = new Date().getDay();
-
-    const map = {
-        1: "월", 2: "화", 3: "수",
-        4: "목", 5: "금",
-        6: "토", 0: "일"
-    };
-
-    return task.category === "일간" ||
-           task.category === "주간" ||
-           task.category === "물교" ||
-           task.category === map[day];
+function isToday(t){
+    const map={0:"일",1:"월",2:"화",3:"수",4:"목",5:"금",6:"토"};
+    return t.category==="일간"||t.category==="주간"||t.category===map[new Date().getDay()];
 }
 
-/* ================= 상태 ================= */
-function state(c) {
-    if (c <= 0) return "low";
-    if (c < 3) return "mid";
-    return "max";
+/* ================= RESET ================= */
+function weeklyReset(){
+    const now=new Date();
+    const last=localStorage.getItem("reset");
+    if(!last|| (now.getDay()===1 && now.getHours()>=6)){
+        data.chars.forEach(c=>{
+            c.tasks.forEach(t=>{
+                if(t.type==="check")t.done=false;
+                if(t.type==="count")t.count=0;
+            });
+        });
+        localStorage.setItem("reset",Date.now());
+        save();
+    }
 }
 
-/* ================= 렌더 ================= */
-function render() {
-    const charList = document.getElementById("charList");
-    const taskList = document.getElementById("taskList");
+/* ================= RENDER ================= */
+function render(){
 
-    charList.innerHTML = "";
-    taskList.innerHTML = "";
+    const charList=document.getElementById("charList");
+    const taskList=document.getElementById("taskList");
 
-    data.chars.forEach((c, i) => {
-        charList.innerHTML += `
-        <div class="char ${i===data.selected?"active":""}"
-        onclick="selectChar(${i})">
-        ${c.name}
+    charList.innerHTML="";
+    taskList.innerHTML="";
+
+    data.chars.forEach((c,i)=>{
+        charList.innerHTML+=`
+        <div class="char ${i===data.selected?"active":""}">
+            <div onclick="selectChar(${i})">${c.name}</div>
+            <small>${getProgress(c)}</small>
+            <div>
+                <button onclick="moveChar(${i},-1)">⬆</button>
+                <button onclick="moveChar(${i},1)">⬇</button>
+                <button onclick="editChar(${i})">✏</button>
+                <button onclick="deleteChar(${i})">🗑</button>
+            </div>
         </div>`;
     });
 
-    let tasks = getTasks();
+    let tasks=getTasks();
 
-    if (filter !== "all") {
-        if (filter === "today") {
-            tasks = tasks.filter(isToday);
-        } else {
-            tasks = tasks.filter(t => t.category === filter);
-        }
+    if(filter==="today"){
+        tasks=tasks.filter(isToday);
+    } else if(filter!=="all"){
+        tasks=tasks.filter(t=>t.category===filter);
     }
 
-    tasks.forEach((t, i) => {
-
-        taskList.innerHTML += `
+    tasks.forEach((t,i)=>{
+        taskList.innerHTML+=`
         <div class="task">
 
             <div style="flex:1">${t.name}</div>
-
             <div class="category">${t.category}</div>
 
-            ${t.type==="count" ? `
-                <div class="state ${state(t.count)}">${t.count}/3</div>
+            ${t.type==="count"?`
+                <div>${t.count}/3</div>
                 <button onclick="change(${i},-1)">-</button>
                 <button onclick="change(${i},1)">+</button>
-            ` : `
+            `:`
                 <input type="checkbox"
                 ${t.done?"checked":""}
                 onchange="toggle(${i})">
@@ -383,8 +406,8 @@ function render() {
     });
 }
 
-/* ================= 실행 ================= */
-save();
+/* ================= RUN ================= */
+weeklyReset();
 render();
 
 </script>
