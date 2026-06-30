@@ -38,6 +38,11 @@ body{
 
 .char small{display:block;color:#aaa;}
 
+.char button{
+    margin-top:5px;
+    font-size:12px;
+}
+
 /* RIGHT */
 .right{
     flex:1;
@@ -88,6 +93,7 @@ button{
     color:#aaa;
 }
 
+/* pinned */
 .pinned{
     color:#ffd700;
 }
@@ -134,8 +140,8 @@ button{
     </select>
 
     <select id="type">
-        <option value="count">횟수형</option>
         <option value="check">체크형</option>
+        <option value="count">횟수형</option>
     </select>
 
     <button onclick="addTask()">추가</button>
@@ -149,12 +155,11 @@ button{
 <div id="taskList"></div>
 
 </div>
-
 </div>
 
 <script>
 
-/* ================= FIREBASE (NON-MODULE 안정버전) ================= */
+/* ================= FIREBASE ================= */
 const firebaseConfig = {
   apiKey: "AIzaSyAV6eg2GoplEAniflYwkQeMG3lMLHkf4mA",
   authDomain: "mobi-task.firebaseapp.com",
@@ -163,14 +168,6 @@ const firebaseConfig = {
   messagingSenderId: "822908775749",
   appId: "1:822908775749:web:3e0b70f1e0ca8e16b7e22c"
 };
-
-/* CDN 방식 (module 제거) */
-</script>
-
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-
-<script>
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
@@ -211,7 +208,7 @@ function defaultData(){
     };
 }
 
-/* ================= FIREBASE ================= */
+/* ================= FIREBASE LOAD ================= */
 async function load(){
     const snap = await docRef.get();
     if(snap.exists){
@@ -223,6 +220,7 @@ async function load(){
     render();
 }
 
+/* ================= SAVE ================= */
 async function save(){
     await docRef.set(data);
 }
@@ -243,6 +241,25 @@ function addChar(){
 function selectChar(i){
     data.selected=i;
     render();
+}
+
+function editChar(i){
+    const name = prompt("이름 수정", data.chars[i].name);
+    if(!name) return;
+
+    data.chars[i].name = name;
+
+    save();
+    render();
+}
+
+function deleteChar(i){
+    if(!confirm("삭제?"))return;
+
+    data.chars.splice(i,1);
+    data.selected=0;
+
+    save();render();
 }
 
 function getChar(){
@@ -272,6 +289,7 @@ function addTask(){
 function toggle(id){
     const c=getChar();
     c.progress[id]=!c.progress[id];
+
     save();render();
 }
 
@@ -289,6 +307,7 @@ function change(id,d){
 function togglePin(id){
     const t=data.tasks.find(x=>x.id===id);
     t.pinned=!t.pinned;
+
     save();render();
 }
 
@@ -299,8 +318,10 @@ function loadDefault(){
 }
 
 async function resetAll(){
-    if(!confirm("진짜 초기화?"))return;
+    if(!confirm("전체 초기화?"))return;
+
     data = defaultData();
+
     await save();
     render();
 }
@@ -314,16 +335,23 @@ function render(){
     charList.innerHTML="";
     taskList.innerHTML="";
 
+    /* chars */
     data.chars.forEach((c,i)=>{
         charList.innerHTML+=`
         <div class="char ${i===data.selected?"active":""}"
         onclick="selectChar(${i})">
-            ${c.name}
+
+            <div>${c.name}</div>
+
+            <button onclick="editChar(${i})">✏</button>
+            <button onclick="deleteChar(${i})">🗑</button>
+
         </div>`;
     });
 
     const c=getChar();
 
+    /* tasks */
     data.tasks
     .sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0))
     .forEach(t=>{
