@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>모비 숙제</title>
+<title>로아 숙제 앱</title>
 
 <style>
 body{
@@ -12,7 +12,6 @@ body{
     color:#e6e6e6;
 }
 
-/* layout */
 .container{
     display:flex;
     height:100vh;
@@ -23,8 +22,8 @@ body{
     width:240px;
     background:#141824;
     padding:10px;
-    overflow-y:auto;
     border-right:1px solid #22283a;
+    overflow-y:auto;
 }
 
 .char{
@@ -37,10 +36,7 @@ body{
 
 .char.active{background:#4c7dff;}
 
-.char small{
-    display:block;
-    color:#aaa;
-}
+.char small{display:block;color:#aaa;}
 
 /* right */
 .right{
@@ -77,8 +73,8 @@ button{
 /* task */
 .task{
     display:flex;
-    align-items:center;
     justify-content:space-between;
+    align-items:center;
     background:#151a25;
     border:1px solid #22283a;
     padding:10px;
@@ -86,17 +82,14 @@ button{
     border-radius:10px;
 }
 
-/* category */
 .category{
     width:60px;
     font-size:12px;
     color:#aaa;
 }
 
-/* pinned */
 .pinned{
     color:#ffd700;
-    font-weight:bold;
 }
 
 /* mobile */
@@ -110,9 +103,7 @@ button{
         gap:6px;
     }
 
-    .char{
-        min-width:140px;
-    }
+    .char{min-width:140px;}
 }
 </style>
 </head>
@@ -132,7 +123,6 @@ button{
 
 <h2>🎮 로아 숙제 앱</h2>
 
-<!-- input -->
 <div class="input-box">
     <input id="name" placeholder="숙제 이름">
 
@@ -151,40 +141,114 @@ button{
     <button onclick="addTask()">추가</button>
 </div>
 
-<!-- view -->
-<div class="input-box">
-    <button onclick="setView('single')">선택 캐릭터</button>
-    <button onclick="setView('all')">전체 보기</button>
-</div>
-
 <div id="taskList"></div>
 
 </div>
 
 </div>
 
-<script>
+<script type="module">
 
-/* ================= DATA ================= */
-let data = JSON.parse(localStorage.getItem("data")) || {
-    tasks: [],
-    chars: [],
-    selected: 0
+/* ================= FIREBASE ================= */
+import { initializeApp } 
+from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+
+import { getFirestore, doc, setDoc, getDoc }
+from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAV6eg2GoplEAniflYwkQeMG3lMLHkf4mA",
+  authDomain: "mobi-task.firebaseapp.com",
+  projectId: "mobi-task",
+  storageBucket: "mobi-task.firebasestorage.app",
+  messagingSenderId: "822908775749",
+  appId: "1:822908775749:web:3e0b70f1e0ca8e16b7e22c",
+  measurementId: "G-SP6Z6DSY0G"
 };
 
-let viewMode = "single";
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const docRef = doc(db, "loa", "data");
 
-/* ================= INIT ================= */
-if(!data.chars.length){
-    data.chars.push({
-        name:"캐릭터 1",
-        progress:{}
-    });
+/* ================= DATA ================= */
+let data;
+
+/* ================= DEFAULT ================= */
+function createDefaultData(){
+    return {
+        tasks: [
+            {id:1,name:"어비스",category:"주간",type:"check",pinned:false},
+            {id:2,name:"타바르타스",category:"주간",type:"check",pinned:false},
+            {id:3,name:"화이트 서큐버스",category:"주간",type:"check",pinned:false},
+            {id:4,name:"에이렐",category:"주간",type:"check",pinned:false},
+            {id:5,name:"필보",category:"주간",type:"check",pinned:false},
+            {id:6,name:"뱅가드",category:"주간",type:"count",pinned:false},
+            {id:7,name:"심층매어",category:"주간",type:"check",pinned:false},
+            {id:8,name:"골드알바",category:"주간",type:"check",pinned:false},
+            {id:9,name:"표바꾸기",category:"주간",type:"check",pinned:false},
+
+            {id:10,name:"어비스",category:"주말",type:"count",pinned:false},
+            {id:11,name:"레이드",category:"주말",type:"check",pinned:false},
+            {id:12,name:"쿠데타알바",category:"주말",type:"check",pinned:false},
+
+            {id:13,name:"농매",category:"물교",type:"check",pinned:false},
+            {id:14,name:"최상급목재+",category:"물교",type:"check",pinned:false},
+            {id:15,name:"백금강괴",category:"물교",type:"check",pinned:false},
+            {id:16,name:"월화물고기",category:"물교",type:"check",pinned:false},
+            {id:17,name:"수목물고기",category:"물교",type:"check",pinned:false},
+            {id:18,name:"금토일물고기",category:"물교",type:"check",pinned:false}
+        ],
+        chars:[
+            {name:"캐릭터 1",progress:{}}
+        ],
+        selected:0
+    };
 }
 
-/* ================= SAVE ================= */
-function save(){
-    localStorage.setItem("data",JSON.stringify(data));
+/* ================= FIREBASE IO ================= */
+async function saveData(){
+    await setDoc(docRef,data);
+}
+
+async function loadData(){
+    const snap = await getDoc(docRef);
+    return snap.exists()?snap.data():null;
+}
+
+/* ================= INIT ================= */
+async function startApp(){
+    const saved = await loadData();
+
+    if(saved){
+        data = saved;
+    }else{
+        data = createDefaultData();
+        await saveData();
+    }
+
+    render();
+}
+
+/* ================= CHAR ================= */
+function addChar(){
+    if(data.chars.length>=15)return alert("최대 15개");
+
+    const name = prompt("캐릭터 이름");
+    if(!name)return;
+
+    data.chars.push({name,progress:{}});
+    data.selected=data.chars.length-1;
+
+    save();render();
+}
+
+function selectChar(i){
+    data.selected=i;
+    render();
+}
+
+function getChar(){
+    return data.chars[data.selected];
 }
 
 /* ================= TASK ================= */
@@ -197,63 +261,14 @@ function addTask(){
 
     data.tasks.push({
         id:Date.now(),
-        name,
-        category,
-        type,
+        name,category,type,
         pinned:false
     });
 
-    save();
-    render();
-}
-
-/* ================= CHAR ================= */
-function addChar(){
-    if(data.chars.length>=15)return alert("최대 15개");
-
-    const name=prompt("캐릭터 이름");
-    if(!name)return;
-
-    data.chars.push({
-        name,
-        progress:{}
-    });
-
-    data.selected=data.chars.length-1;
-    save();
-    render();
-}
-
-function selectChar(i){
-    data.selected=i;
-    render();
-}
-
-function editChar(i){
-    const name=prompt("수정",data.chars[i].name);
-    if(!name)return;
-    data.chars[i].name=name;
     save();render();
 }
 
-function deleteChar(i){
-    if(!confirm("삭제?"))return;
-    data.chars.splice(i,1);
-    save();render();
-}
-
-function moveChar(i,d){
-    const j=i+d;
-    if(j<0||j>=data.chars.length)return;
-    [data.chars[i],data.chars[j]]=[data.chars[j],data.chars[i]];
-    save();render();
-}
-
-/* ================= PROGRESS ================= */
-function getChar(){
-    return data.chars[data.selected];
-}
-
+/* ================= ACTION ================= */
 function toggle(id){
     const c=getChar();
     c.progress[id]=!c.progress[id];
@@ -271,42 +286,10 @@ function change(id,d){
     save();render();
 }
 
-/* ================= PIN ================= */
 function togglePin(id){
     const t=data.tasks.find(x=>x.id===id);
-    if(!t)return;
     t.pinned=!t.pinned;
     save();render();
-}
-
-/* ================= VIEW ================= */
-function setView(mode){
-    viewMode=mode;
-    render();
-}
-
-/* ================= RESET ================= */
-function reset(){
-    const now=new Date();
-    if(now.getDay()===1 && now.getHours()>=6){
-        data.chars.forEach(c=>{
-            c.progress={};
-        });
-        save();
-    }
-}
-
-/* ================= PROGRESS ================= */
-function getProgress(c){
-    let done=0;
-
-    data.tasks.forEach(t=>{
-        const p=c.progress[t.id];
-        if(t.type==="check" && p)done++;
-        if(t.type==="count" && p>=3)done++;
-    });
-
-    return `${done}/${data.tasks.length}`;
 }
 
 /* ================= RENDER ================= */
@@ -321,65 +304,15 @@ function render(){
     /* chars */
     data.chars.forEach((c,i)=>{
         charList.innerHTML+=`
-        <div class="char ${i===data.selected?"active":""}">
-            <div onclick="selectChar(${i})">${c.name}</div>
-            <small>${getProgress(c)}</small>
-            <div>
-                <button onclick="moveChar(${i},-1)">⬆</button>
-                <button onclick="moveChar(${i},1)">⬇</button>
-                <button onclick="editChar(${i})">✏</button>
-                <button onclick="deleteChar(${i})">🗑</button>
-            </div>
+        <div class="char ${i===data.selected?"active":""}"
+        onclick="selectChar(${i})">
+            ${c.name}
         </div>`;
     });
 
-    /* view mode */
-    if(viewMode==="all"){
-
-        data.chars.forEach(c=>{
-
-            taskList.innerHTML+=`
-            <h3 style="color:#7aa2ff;margin-top:20px;">
-                👤 ${c.name} (${getProgress(c)})
-            </h3>
-            `;
-
-            data.tasks
-            .sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0))
-            .forEach(t=>{
-
-                const p=c.progress[t.id];
-
-                taskList.innerHTML+=`
-                <div class="task">
-
-                    <div style="flex:1 ${t.pinned?'color:#ffd700':''}">
-                        ${t.pinned?"📌 ":""}${t.name}
-                    </div>
-
-                    <div class="category">${t.category}</div>
-
-                    ${t.type==="count"?`
-                        <div>${p||0}/3</div>
-                        <button onclick="change(${t.id},-1)">-</button>
-                        <button onclick="change(${t.id},1)">+</button>
-                    `:`
-                        <input type="checkbox"
-                        ${p?"checked":""}
-                        onchange="toggle(${t.id})">
-                    `}
-
-                    <button onclick="togglePin(${t.id})">📌</button>
-                </div>`;
-            });
-        });
-
-        return;
-    }
-
-    /* single view */
     const c=getChar();
 
+    /* tasks */
     data.tasks
     .sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0))
     .forEach(t=>{
@@ -411,8 +344,7 @@ function render(){
 }
 
 /* ================= RUN ================= */
-reset();
-render();
+startApp();
 
 </script>
 
