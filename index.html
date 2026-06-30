@@ -2,24 +2,24 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>로아 숙제 앱</title>
+<title>모비 숙제</title>
 
 <style>
-body {
+body{
     margin:0;
-    font-family: Arial;
+    font-family:Arial;
     background:#0f1117;
     color:#e6e6e6;
 }
 
 /* layout */
-.container {
+.container{
     display:flex;
     height:100vh;
 }
 
-/* chars */
-.left {
+/* left */
+.left{
     width:240px;
     background:#141824;
     padding:10px;
@@ -27,7 +27,7 @@ body {
     border-right:1px solid #22283a;
 }
 
-.char {
+.char{
     background:#1a1f2e;
     padding:10px;
     margin:6px 0;
@@ -35,29 +35,29 @@ body {
     cursor:pointer;
 }
 
-.char.active { background:#4c7dff; }
+.char.active{background:#4c7dff;}
 
-.char small {
+.char small{
     display:block;
     color:#aaa;
 }
 
-/* main */
-.right {
+/* right */
+.right{
     flex:1;
     padding:15px;
     overflow-y:auto;
 }
 
 /* input */
-.input {
+.input-box{
     display:flex;
     gap:8px;
     flex-wrap:wrap;
     margin-bottom:10px;
 }
 
-input,select {
+input,select{
     padding:8px;
     border:none;
     border-radius:6px;
@@ -65,7 +65,7 @@ input,select {
     color:white;
 }
 
-button {
+button{
     padding:7px 10px;
     border:none;
     border-radius:6px;
@@ -75,32 +75,41 @@ button {
 }
 
 /* task */
-.task {
+.task{
     display:flex;
-    justify-content:space-between;
     align-items:center;
-    padding:10px;
-    margin:8px 0;
+    justify-content:space-between;
     background:#151a25;
     border:1px solid #22283a;
+    padding:10px;
+    margin:8px 0;
     border-radius:10px;
 }
 
-.category {
+/* category */
+.category{
     width:60px;
     font-size:12px;
     color:#aaa;
 }
 
+/* pinned */
+.pinned{
+    color:#ffd700;
+    font-weight:bold;
+}
+
 /* mobile */
 @media(max-width:768px){
     .container{flex-direction:column;}
+
     .left{
         width:100%;
         display:flex;
         overflow-x:auto;
         gap:6px;
     }
+
     .char{
         min-width:140px;
     }
@@ -123,7 +132,8 @@ button {
 
 <h2>🎮 로아 숙제 앱</h2>
 
-<div class="input">
+<!-- input -->
+<div class="input-box">
     <input id="name" placeholder="숙제 이름">
 
     <select id="category">
@@ -141,6 +151,12 @@ button {
     <button onclick="addTask()">추가</button>
 </div>
 
+<!-- view -->
+<div class="input-box">
+    <button onclick="setView('single')">선택 캐릭터</button>
+    <button onclick="setView('all')">전체 보기</button>
+</div>
+
 <div id="taskList"></div>
 
 </div>
@@ -153,9 +169,10 @@ button {
 let data = JSON.parse(localStorage.getItem("data")) || {
     tasks: [],
     chars: [],
-    selected: 0,
-    lastReset: 0
+    selected: 0
 };
+
+let viewMode = "single";
 
 /* ================= INIT ================= */
 if(!data.chars.length){
@@ -180,10 +197,14 @@ function addTask(){
 
     data.tasks.push({
         id:Date.now(),
-        name,category,type
+        name,
+        category,
+        type,
+        pinned:false
     });
 
-    save();render();
+    save();
+    render();
 }
 
 /* ================= CHAR ================= */
@@ -199,7 +220,8 @@ function addChar(){
     });
 
     data.selected=data.chars.length-1;
-    save();render();
+    save();
+    render();
 }
 
 function selectChar(i){
@@ -207,11 +229,31 @@ function selectChar(i){
     render();
 }
 
+function editChar(i){
+    const name=prompt("수정",data.chars[i].name);
+    if(!name)return;
+    data.chars[i].name=name;
+    save();render();
+}
+
+function deleteChar(i){
+    if(!confirm("삭제?"))return;
+    data.chars.splice(i,1);
+    save();render();
+}
+
+function moveChar(i,d){
+    const j=i+d;
+    if(j<0||j>=data.chars.length)return;
+    [data.chars[i],data.chars[j]]=[data.chars[j],data.chars[i]];
+    save();render();
+}
+
+/* ================= PROGRESS ================= */
 function getChar(){
     return data.chars[data.selected];
 }
 
-/* ================= PROGRESS ================= */
 function toggle(id){
     const c=getChar();
     c.progress[id]=!c.progress[id];
@@ -229,18 +271,42 @@ function change(id,d){
     save();render();
 }
 
+/* ================= PIN ================= */
+function togglePin(id){
+    const t=data.tasks.find(x=>x.id===id);
+    if(!t)return;
+    t.pinned=!t.pinned;
+    save();render();
+}
+
+/* ================= VIEW ================= */
+function setView(mode){
+    viewMode=mode;
+    render();
+}
+
 /* ================= RESET ================= */
 function reset(){
     const now=new Date();
-    const last=new Date(data.lastReset);
-
     if(now.getDay()===1 && now.getHours()>=6){
         data.chars.forEach(c=>{
             c.progress={};
         });
-        data.lastReset=Date.now();
         save();
     }
+}
+
+/* ================= PROGRESS ================= */
+function getProgress(c){
+    let done=0;
+
+    data.tasks.forEach(t=>{
+        const p=c.progress[t.id];
+        if(t.type==="check" && p)done++;
+        if(t.type==="count" && p>=3)done++;
+    });
+
+    return `${done}/${data.tasks.length}`;
 }
 
 /* ================= RENDER ================= */
@@ -255,23 +321,78 @@ function render(){
     /* chars */
     data.chars.forEach((c,i)=>{
         charList.innerHTML+=`
-        <div class="char ${i===data.selected?"active":""}"
-        onclick="selectChar(${i})">
-            ${c.name}
+        <div class="char ${i===data.selected?"active":""}">
+            <div onclick="selectChar(${i})">${c.name}</div>
+            <small>${getProgress(c)}</small>
+            <div>
+                <button onclick="moveChar(${i},-1)">⬆</button>
+                <button onclick="moveChar(${i},1)">⬇</button>
+                <button onclick="editChar(${i})">✏</button>
+                <button onclick="deleteChar(${i})">🗑</button>
+            </div>
         </div>`;
     });
 
-    /* tasks */
+    /* view mode */
+    if(viewMode==="all"){
+
+        data.chars.forEach(c=>{
+
+            taskList.innerHTML+=`
+            <h3 style="color:#7aa2ff;margin-top:20px;">
+                👤 ${c.name} (${getProgress(c)})
+            </h3>
+            `;
+
+            data.tasks
+            .sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0))
+            .forEach(t=>{
+
+                const p=c.progress[t.id];
+
+                taskList.innerHTML+=`
+                <div class="task">
+
+                    <div style="flex:1 ${t.pinned?'color:#ffd700':''}">
+                        ${t.pinned?"📌 ":""}${t.name}
+                    </div>
+
+                    <div class="category">${t.category}</div>
+
+                    ${t.type==="count"?`
+                        <div>${p||0}/3</div>
+                        <button onclick="change(${t.id},-1)">-</button>
+                        <button onclick="change(${t.id},1)">+</button>
+                    `:`
+                        <input type="checkbox"
+                        ${p?"checked":""}
+                        onchange="toggle(${t.id})">
+                    `}
+
+                    <button onclick="togglePin(${t.id})">📌</button>
+                </div>`;
+            });
+        });
+
+        return;
+    }
+
+    /* single view */
     const c=getChar();
 
-    data.tasks.forEach(t=>{
+    data.tasks
+    .sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0))
+    .forEach(t=>{
 
         const p=c.progress[t.id];
 
         taskList.innerHTML+=`
         <div class="task">
 
-            <div style="flex:1">${t.name}</div>
+            <div style="flex:1 ${t.pinned?'color:#ffd700':''}">
+                ${t.pinned?"📌 ":""}${t.name}
+            </div>
+
             <div class="category">${t.category}</div>
 
             ${t.type==="count"?`
@@ -284,6 +405,7 @@ function render(){
                 onchange="toggle(${t.id})">
             `}
 
+            <button onclick="togglePin(${t.id})">📌</button>
         </div>`;
     });
 }
