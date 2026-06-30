@@ -1,6 +1,393 @@
----
-layout: blog
-title: Home
-description: >
-  DaeIn Lee's blog. Work Hard to be Lazy.
----
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>로아 숙제 관리</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial;
+    background: #0f1117;
+    color: #e6e6e6;
+}
+
+/* 레이아웃 */
+.container {
+    display: flex;
+    height: 100vh;
+}
+
+/* 좌측 캐릭터 */
+.left {
+    width: 220px;
+    background: #141824;
+    padding: 10px;
+    border-right: 1px solid #22283a;
+    overflow-y: auto;
+}
+
+.char {
+    padding: 10px;
+    margin: 5px 0;
+    background: #1a1f2e;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.char.active {
+    background: #4c7dff;
+}
+
+/* 우측 */
+.right {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+}
+
+/* 입력 */
+.input-box {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+input, select {
+    padding: 8px;
+    border-radius: 6px;
+    border: none;
+    background: #1a1f2e;
+    color: white;
+}
+
+/* 버튼 */
+button {
+    padding: 8px 10px;
+    border: none;
+    border-radius: 6px;
+    background: #4c7dff;
+    color: white;
+    cursor: pointer;
+}
+
+/* 필터 */
+.filter {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.filter button {
+    background: #22283a;
+}
+
+.filter button.active {
+    background: #4c7dff;
+}
+
+/* 숙제 카드 */
+.task {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #151a25;
+    border: 1px solid #22283a;
+    padding: 10px;
+    margin: 8px 0;
+    border-radius: 10px;
+}
+
+/* 카테고리 */
+.category {
+    width: 60px;
+    font-size: 12px;
+    color: #aaa;
+}
+
+/* 상태 */
+.state.low { color: #ff5c5c; }
+.state.mid { color: #ffcc66; }
+.state.max { color: #5cff9d; }
+
+/* 모바일 */
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+    }
+
+    .left {
+        width: 100%;
+        display: flex;
+        overflow-x: auto;
+        gap: 5px;
+    }
+
+    .char {
+        flex: 0 0 auto;
+        min-width: 120px;
+        text-align: center;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- 캐릭터 -->
+<div class="left">
+    <button onclick="addChar()">+ 캐릭터</button>
+    <div id="charList"></div>
+</div>
+
+<!-- 숙제 -->
+<div class="right">
+
+<h2>🎮 숙제 관리</h2>
+
+<!-- 입력 -->
+<div class="input-box">
+    <input id="name" placeholder="숙제 이름">
+
+    <select id="category">
+        <option value="일간">일간</option>
+        <option value="주간">주간</option>
+        <option value="주말">주말</option>
+        <option value="물교">물교</option>
+    </select>
+
+    <select id="type">
+        <option value="count">횟수형</option>
+        <option value="check">체크형</option>
+    </select>
+
+    <button onclick="addTask()">추가</button>
+</div>
+
+<!-- 필터 -->
+<div class="filter">
+    <button onclick="setFilter('all')" class="active">전체</button>
+    <button onclick="setFilter('일간')">일간</button>
+    <button onclick="setFilter('주간')">주간</button>
+    <button onclick="setFilter('주말')">주말</button>
+    <button onclick="setFilter('물교')">물교</button>
+    <button onclick="setFilter('today')">오늘</button>
+</div>
+
+<div id="taskList"></div>
+
+</div>
+
+</div>
+
+<script>
+
+/* ================= 데이터 ================= */
+let data = JSON.parse(localStorage.getItem("data")) || {
+    chars: [],
+    selected: 0
+};
+
+let filter = "all";
+
+/* ================= 기본 템플릿 ================= */
+const defaultTasks = [
+  { name:"어비스", category:"주간", type:"check" },
+  { name:"타바르타스", category:"주간", type:"check" },
+  { name:"화이트 서큐버스", category:"주간", type:"check" },
+  { name:"에이렐", category:"주간", type:"check" },
+  { name:"필보", category:"주간", type:"check" },
+  { name:"뱅가드", category:"주간", type:"count", count:3 },
+  { name:"심층매어", category:"주간", type:"check" },
+  { name:"골드알바", category:"주간", type:"check" },
+  { name:"표바꾸기", category:"주간", type:"check" },
+
+  { name:"어비스", category:"주말", type:"count", count:3 },
+  { name:"레이드", category:"주말", type:"check" },
+  { name:"쿠데타알바", category:"주말", type:"check" },
+
+  { name:"농매", category:"물교", type:"check" },
+  { name:"최상급목재+", category:"물교", type:"check" },
+  { name:"백금강괴", category:"물교", type:"check" },
+  { name:"월화물고기", category:"물교", type:"check" },
+  { name:"수목물고기", category:"물교", type:"check" },
+  { name:"금토일물고기", category:"물교", type:"check" }
+];
+
+/* ================= 초기 캐릭터 ================= */
+if (!data.chars.length) {
+    data.chars.push({
+        name: "캐릭터 1",
+        tasks: JSON.parse(JSON.stringify(defaultTasks))
+    });
+}
+
+/* ================= 저장 ================= */
+function save() {
+    localStorage.setItem("data", JSON.stringify(data));
+}
+
+/* ================= 캐릭터 ================= */
+function addChar() {
+    if (data.chars.length >= 15) return alert("최대 15개");
+
+    const name = prompt("캐릭터 이름");
+    if (!name) return;
+
+    data.chars.push({
+        name,
+        tasks: JSON.parse(JSON.stringify(defaultTasks))
+    });
+
+    data.selected = data.chars.length - 1;
+    save();
+    render();
+}
+
+function selectChar(i) {
+    data.selected = i;
+    render();
+}
+
+/* ================= 숙제 ================= */
+function getTasks() {
+    return data.chars[data.selected].tasks;
+}
+
+function addTask() {
+    const name = document.getElementById("name").value;
+    const category = document.getElementById("category").value;
+    const type = document.getElementById("type").value;
+
+    if (!name) return;
+
+    getTasks().push({
+        name,
+        category,
+        type,
+        count: 0,
+        done: false
+    });
+
+    document.getElementById("name").value = "";
+    save();
+    render();
+}
+
+/* ================= 변경 ================= */
+function change(i, diff) {
+    let t = getTasks()[i];
+    t.count += diff;
+
+    if (t.count < 0) t.count = 0;
+    if (t.count > 3) t.count = 3;
+
+    save();
+    render();
+}
+
+function toggle(i) {
+    let t = getTasks()[i];
+    t.done = !t.done;
+
+    save();
+    render();
+}
+
+function del(i) {
+    getTasks().splice(i, 1);
+    save();
+    render();
+}
+
+/* ================= 필터 ================= */
+function setFilter(f) {
+    filter = f;
+    render();
+}
+
+/* ================= 오늘 필터 ================= */
+function isToday(task) {
+    const day = new Date().getDay();
+
+    const map = {
+        1: "월", 2: "화", 3: "수",
+        4: "목", 5: "금",
+        6: "토", 0: "일"
+    };
+
+    return task.category === "일간" ||
+           task.category === "주간" ||
+           task.category === "물교" ||
+           task.category === map[day];
+}
+
+/* ================= 상태 ================= */
+function state(c) {
+    if (c <= 0) return "low";
+    if (c < 3) return "mid";
+    return "max";
+}
+
+/* ================= 렌더 ================= */
+function render() {
+    const charList = document.getElementById("charList");
+    const taskList = document.getElementById("taskList");
+
+    charList.innerHTML = "";
+    taskList.innerHTML = "";
+
+    data.chars.forEach((c, i) => {
+        charList.innerHTML += `
+        <div class="char ${i===data.selected?"active":""}"
+        onclick="selectChar(${i})">
+        ${c.name}
+        </div>`;
+    });
+
+    let tasks = getTasks();
+
+    if (filter !== "all") {
+        if (filter === "today") {
+            tasks = tasks.filter(isToday);
+        } else {
+            tasks = tasks.filter(t => t.category === filter);
+        }
+    }
+
+    tasks.forEach((t, i) => {
+
+        taskList.innerHTML += `
+        <div class="task">
+
+            <div style="flex:1">${t.name}</div>
+
+            <div class="category">${t.category}</div>
+
+            ${t.type==="count" ? `
+                <div class="state ${state(t.count)}">${t.count}/3</div>
+                <button onclick="change(${i},-1)">-</button>
+                <button onclick="change(${i},1)">+</button>
+            ` : `
+                <input type="checkbox"
+                ${t.done?"checked":""}
+                onchange="toggle(${i})">
+            `}
+
+            <button onclick="del(${i})">X</button>
+        </div>`;
+    });
+}
+
+/* ================= 실행 ================= */
+save();
+render();
+
+</script>
+
+</body>
+</html>
