@@ -40,7 +40,6 @@ body{
 
 .char button{
     margin-top:5px;
-    font-size:12px;
 }
 
 /* RIGHT */
@@ -50,7 +49,6 @@ body{
     overflow-y:auto;
 }
 
-/* input */
 .input-box{
     display:flex;
     gap:8px;
@@ -75,7 +73,6 @@ button{
     cursor:pointer;
 }
 
-/* task */
 .task{
     display:flex;
     align-items:center;
@@ -91,11 +88,6 @@ button{
     width:60px;
     font-size:12px;
     color:#aaa;
-}
-
-/* pinned */
-.pinned{
-    color:#ffd700;
 }
 
 /* mobile */
@@ -148,13 +140,14 @@ button{
 </div>
 
 <div class="input-box">
-    <button onclick="loadDefault()">🔄 기본 숙제</button>
-    <button onclick="resetAll()" style="background:#ff4c4c;">🗑 초기화</button>
+    <button onclick="setView('single')">선택 캐릭터</button>
+    <button onclick="setView('all')">전체 보기</button>
 </div>
 
 <div id="taskList"></div>
 
 </div>
+
 </div>
 
 <script>
@@ -175,31 +168,21 @@ const docRef = db.collection("loa").doc("data");
 
 /* ================= DATA ================= */
 let data;
+let viewMode="single";
 
 /* ================= DEFAULT ================= */
 function defaultData(){
     return {
         tasks:[
-            {id:1,name:"어비스",category:"주간",type:"check",pinned:false},
-            {id:2,name:"타바르타스",category:"주간",type:"check",pinned:false},
-            {id:3,name:"화이트 서큐버스",category:"주간",type:"check",pinned:false},
-            {id:4,name:"에이렐",category:"주간",type:"check",pinned:false},
-            {id:5,name:"필보",category:"주간",type:"check",pinned:false},
-            {id:6,name:"뱅가드",category:"주간",type:"count",pinned:false},
-            {id:7,name:"심층매어",category:"주간",type:"check",pinned:false},
-            {id:8,name:"골드알바",category:"주간",type:"check",pinned:false},
-            {id:9,name:"표바꾸기",category:"주간",type:"check",pinned:false},
-
-            {id:10,name:"어비스",category:"주말",type:"count",pinned:false},
-            {id:11,name:"레이드",category:"주말",type:"check",pinned:false},
-            {id:12,name:"쿠데타알바",category:"주말",type:"check",pinned:false},
-
-            {id:13,name:"농매",category:"물교",type:"check",pinned:false},
-            {id:14,name:"최상급목재+",category:"물교",type:"check",pinned:false},
-            {id:15,name:"백금강괴",category:"물교",type:"check",pinned:false},
-            {id:16,name:"월화물고기",category:"물교",type:"check",pinned:false},
-            {id:17,name:"수목물고기",category:"물교",type:"check",pinned:false},
-            {id:18,name:"금토일물고기",category:"물교",type:"check",pinned:false}
+            {id:1,name:"어비스",category:"주간",type:"check"},
+            {id:2,name:"타바르타스",category:"주간",type:"check"},
+            {id:3,name:"화이트 서큐버스",category:"주간",type:"check"},
+            {id:4,name:"에이렐",category:"주간",type:"check"},
+            {id:5,name:"필보",category:"주간",type:"check"},
+            {id:6,name:"뱅가드",category:"주간",type:"count"},
+            {id:7,name:"심층매어",category:"주간",type:"check"},
+            {id:8,name:"골드알바",category:"주간",type:"check"},
+            {id:9,name:"표바꾸기",category:"주간",type:"check"}
         ],
         chars:[
             {name:"캐릭터 1",progress:{}}
@@ -208,7 +191,7 @@ function defaultData(){
     };
 }
 
-/* ================= FIREBASE LOAD ================= */
+/* ================= LOAD ================= */
 async function load(){
     const snap = await docRef.get();
     if(snap.exists){
@@ -227,8 +210,6 @@ async function save(){
 
 /* ================= CHAR ================= */
 function addChar(){
-    if(data.chars.length>=15)return alert("최대 15개");
-
     const name=prompt("캐릭터 이름");
     if(!name)return;
 
@@ -244,26 +225,10 @@ function selectChar(i){
 }
 
 function editChar(i){
-    const name = prompt("이름 수정", data.chars[i].name);
-    if(!name) return;
-
-    data.chars[i].name = name;
-
-    save();
-    render();
-}
-
-function deleteChar(i){
-    if(!confirm("삭제?"))return;
-
-    data.chars.splice(i,1);
-    data.selected=0;
-
+    const name=prompt("수정",data.chars[i].name);
+    if(!name)return;
+    data.chars[i].name=name;
     save();render();
-}
-
-function getChar(){
-    return data.chars[data.selected];
 }
 
 /* ================= TASK ================= */
@@ -278,23 +243,43 @@ function addTask(){
         id:Date.now(),
         name,
         category,
-        type,
-        pinned:false
+        type
     });
+
+    save();render();
+}
+
+/* ================= TASK EDIT ================= */
+function editTask(id){
+    const t=data.tasks.find(x=>x.id===id);
+    const name=prompt("숙제 이름 수정",t.name);
+    if(!name)return;
+
+    t.name=name;
+    save();render();
+}
+
+/* ================= TASK ORDER ================= */
+function moveTask(index,dir){
+    const i=index;
+    const j=i+dir;
+
+    if(j<0||j>=data.tasks.length)return;
+
+    [data.tasks[i],data.tasks[j]]=[data.tasks[j],data.tasks[i]];
 
     save();render();
 }
 
 /* ================= ACTION ================= */
 function toggle(id){
-    const c=getChar();
+    const c=data.chars[data.selected];
     c.progress[id]=!c.progress[id];
-
     save();render();
 }
 
 function change(id,d){
-    const c=getChar();
+    const c=data.chars[data.selected];
     if(!c.progress[id])c.progress[id]=0;
 
     c.progress[id]+=d;
@@ -304,25 +289,9 @@ function change(id,d){
     save();render();
 }
 
-function togglePin(id){
-    const t=data.tasks.find(x=>x.id===id);
-    t.pinned=!t.pinned;
-
-    save();render();
-}
-
-/* ================= ADMIN ================= */
-function loadDefault(){
-    data = defaultData();
-    save();render();
-}
-
-async function resetAll(){
-    if(!confirm("전체 초기화?"))return;
-
-    data = defaultData();
-
-    await save();
+/* ================= VIEW ================= */
+function setView(m){
+    viewMode=m;
     render();
 }
 
@@ -341,30 +310,56 @@ function render(){
         <div class="char ${i===data.selected?"active":""}"
         onclick="selectChar(${i})">
 
-            <div>${c.name}</div>
+            ${c.name}
 
             <button onclick="editChar(${i})">✏</button>
-            <button onclick="deleteChar(${i})">🗑</button>
-
         </div>`;
     });
 
-    const c=getChar();
+    const c=data.chars[data.selected];
 
-    /* tasks */
-    data.tasks
-    .sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0))
-    .forEach(t=>{
+    /* ALL VIEW */
+    if(viewMode==="all"){
+
+        data.chars.forEach(ch=>{
+
+            taskList.innerHTML+=`
+            <h3 style="color:#7aa2ff">${ch.name}</h3>
+            `;
+
+            data.tasks.forEach((t,i)=>{
+
+                const p=ch.progress[t.id];
+
+                taskList.innerHTML+=`
+                <div class="task">
+
+                    <div style="flex:1">${t.name}</div>
+                    <div class="category">${t.category}</div>
+
+                    ${t.type==="count"?`
+                        <div>${p||0}/3</div>
+                    `:`
+                        <input type="checkbox"
+                        ${p?"checked":""}
+                        onchange="toggle(${t.id})">
+                    `}
+                </div>`;
+            });
+        });
+
+        return;
+    }
+
+    /* SINGLE VIEW */
+    data.tasks.forEach((t,i)=>{
 
         const p=c.progress[t.id];
 
         taskList.innerHTML+=`
         <div class="task">
 
-            <div style="flex:1 ${t.pinned?'color:#ffd700':''}">
-                ${t.pinned?"📌 ":""}${t.name}
-            </div>
-
+            <div style="flex:1">${t.name}</div>
             <div class="category">${t.category}</div>
 
             ${t.type==="count"?`
@@ -377,7 +372,9 @@ function render(){
                 onchange="toggle(${t.id})">
             `}
 
-            <button onclick="togglePin(${t.id})">📌</button>
+            <button onclick="editTask(${t.id})">✏</button>
+            <button onclick="moveTask(${i},-1)">⬆</button>
+            <button onclick="moveTask(${i},1)">⬇</button>
         </div>`;
     });
 }
